@@ -1,0 +1,39 @@
+{
+  "question_count": 10,
+  "retrieval_proxy": {
+    "baseline": {
+      "id_context_recall": 1.0,
+      "id_average_precision": 0.5616666666666666
+    },
+    "final": {
+      "id_context_recall": 1.0,
+      "id_average_precision": 0.7833333333333333
+    }
+  },
+  "ragas": {
+    "baseline": {
+      "context_recall": 1.0,
+      "context_precision": 0.6116666666121666,
+      "faithfulness": 0.9258333333333333,
+      "answer_relevancy": 0.843610489758069
+    },
+    "final": {
+      "context_recall": 1.0,
+      "context_precision": 0.7749999999286111,
+      "faithfulness": 0.9752525252525253,
+      "answer_relevancy": 0.8442868095269915
+    }
+  },
+  "operations": {
+    "average_latency_seconds": 25.00862790439969,
+    "average_cost_usd": 0.0057823200000000005,
+    "tool_call_distribution": {
+      "search_regulations": 10,
+      "assess_ai_system_risk": 10
+    },
+    "pricing_usd_per_1m_tokens": {
+      "input": 0.4,
+      "output": 1.6
+    }
+  }
+}

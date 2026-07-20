@@ -1,0 +1,12 @@
+.env
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.DS_Store
+.coverage
+.evaluation_checkpoint.json
+htmlcov/
+.venv/
+venv/
+HW_brief(1).md
+HW_rubric.md
