@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
 import re
 from collections import Counter
 from dataclasses import dataclass
@@ -76,8 +77,10 @@ class HybridRetriever:
         ]
         self.embedding_model_name = embedding_model
         self.reranker_model_name = reranker_model
-        self._embedding_model = None
-        self._reranker = None
+        lightweight = os.getenv("LIGHTWEIGHT_RETRIEVAL", "").lower() in {"1", "true", "yes"}
+        lightweight = lightweight or os.getenv("RENDER", "").lower() == "true"
+        self._embedding_model = False if lightweight else None
+        self._reranker = False if lightweight else None
         self._dense_embeddings = None
         self._build_bm25_index()
 
