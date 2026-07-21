@@ -1,4 +1,4 @@
-"""Custom MCP server exposing grounded AI-governance research tools."""
+"""MCP server exposing grounded governance research tools."""
 
 from __future__ import annotations
 
@@ -27,6 +27,12 @@ def get_retriever() -> HybridRetriever:
     return _retriever
 
 
+def set_retriever(retriever: HybridRetriever) -> None:
+    """Share an initialized retriever with an in-process MCP client."""
+    global _retriever
+    _retriever = retriever
+
+
 def _error(error: Exception) -> str:
     return json.dumps({"ok": False, "error": str(error)}, ensure_ascii=False)
 
@@ -50,9 +56,11 @@ def search_regulations(query: str, top_k: int = 5) -> str:
                 "ok": True,
                 "results": [
                     {
+                        "id": result.document.id,
                         "title": result.document.title,
                         "source": result.document.source,
                         "jurisdiction": result.document.jurisdiction,
+                        "text": result.document.text,
                         "excerpt": result.matched_chunk,
                         "score": round(result.score, 4),
                     }
@@ -128,8 +136,9 @@ def assess_ai_system_risk(system_description: str, jurisdiction: str = "EU") -> 
         }
         gate_action("assess_ai_system_risk", arguments)
         results = get_retriever().search(
-            f"{safe_jurisdiction} risk classification obligations {safe_description}",
-            top_k=5,
+            f"{safe_jurisdiction} AI Act prohibited high-risk transparency obligations "
+            f"{safe_description}",
+            top_k=3,
         )
         return json.dumps(
             {
@@ -137,9 +146,13 @@ def assess_ai_system_risk(system_description: str, jurisdiction: str = "EU") -> 
                 "assessment_type": "preliminary research, not legal advice",
                 "evidence": [
                     {
+                        "id": result.document.id,
                         "title": result.document.title,
                         "source": result.document.source,
+                        "jurisdiction": result.document.jurisdiction,
+                        "text": result.document.text,
                         "excerpt": result.matched_chunk,
+                        "score": round(result.score, 4),
                     }
                     for result in results
                 ],

@@ -1,7 +1,8 @@
-"""Evidence-grounded synthesis, self-consistency, and critic prompts."""
+"""Few-shot reasoning, self-consistency, and critic prompts."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from collections import Counter
@@ -39,6 +40,11 @@ Check whether every material claim is supported by a supplied source, the four r
 are present, uncertainty is honest, and the conclusion does not present legal information as
 legal advice. Return compact JSON with keys verdict (PASS or REVISE), issues (list), and
 suggested_fix (string). Do not add facts."""
+
+# Hash the complete prompt surface so behavior changes remain traceable.
+SYSTEM_PROMPT_HASH = hashlib.sha256(
+    f"{SYNTHESIS_SYSTEM_PROMPT}\n{CRITIC_SYSTEM_PROMPT}".encode("utf-8")
+).hexdigest()[:12]
 
 
 @dataclass(frozen=True)

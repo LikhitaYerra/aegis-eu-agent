@@ -15,5 +15,5 @@ copyrighted commercial commentary without permission.
 
 When no corpus document is present, the agent uses a small built-in four-document EU sample so
 that `python src/agent.py` remains runnable after a clean clone. Neither the sample nor this
-curated coursework corpus replaces checking the complete consolidated legislation, later
+curated research corpus replaces checking the complete consolidated legislation, later
 delegated acts, Commission guidance, and applicable national law for real legal work.

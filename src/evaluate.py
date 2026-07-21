@@ -1,4 +1,4 @@
-"""Reproducible 10-question baseline/final retrieval and RAGAS evaluation."""
+"""Baseline comparison and reproducible RAGAS evaluation."""
 
 from __future__ import annotations
 

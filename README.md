@@ -10,8 +10,8 @@ It is a research aid, not legal advice.
 Python 3.11 or 3.12 is recommended.
 
 ```bash
-git clone <your-repository-url>
-cd <your-repository-directory>
+git clone https://github.com/LikhitaYerra/aegis-eu-agent.git
+cd aegis-eu-agent
 cp .env.example .env
 pip install -r requirements.txt
 python src/agent.py
@@ -21,6 +21,7 @@ The exact command above works without credentials in deterministic demo mode. Ad
 `OPENAI_API_KEY` to `.env` for model-backed synthesis. The first retrieval run downloads the
 pinned dense embedding and cross-encoder models; if model loading is unavailable, the agent
 fails over to deterministic lexical scoring rather than crashing.
+On systems where Python is installed as `python3`, use `python3` in the same commands.
 
 Ask a custom question:
 
@@ -28,10 +29,36 @@ Ask a custom question:
 python src/agent.py "Does an AI CV-ranking tool qualify as high-risk in the EU?"
 ```
 
-Run the security suite:
+Launch the full-stack web interface in two terminals:
 
 ```bash
-python -m pytest tests/test_security.py
+# Terminal 1 — API (from the project root)
+uvicorn api:app --app-dir src --reload
+
+# Terminal 2 — React development server
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. Vite proxies `/api` requests to FastAPI on port 8000. The
+interface provides guided scenarios, structured evidence/analysis/conclusion views, a visible
+critic verdict, run cost and latency, and official-source inspection.
+
+For a single-server production-style run, build the frontend and let FastAPI serve it:
+
+```bash
+cd frontend && npm install && npm run build && cd ..
+uvicorn api:app --app-dir src
+```
+
+Then open `http://localhost:8000`. The command-line interface remains available at the unchanged
+`python src/agent.py` entry point.
+
+Run the complete security, MCP, and API test suite:
+
+```bash
+python -m pytest
 ```
 
 Run the deterministic 10-question retrieval comparison:
@@ -61,14 +88,18 @@ and retrieval failures into safe error responses.
 
 ## Architecture
 
-1. The L1 guardrail normalizes Unicode, rejects injection patterns, and limits input size.
-2. Parent-child retrieval ranks child chunks with BM25 and dense similarity, fuses rankings with
+1. The React/Vite interface sends typed assessment requests to a lifespan-cached FastAPI agent.
+2. FastAPI serializes access to mutable agent run state and maps guardrail failures to safe 4xx
+   responses.
+3. The L1 guardrail normalizes Unicode, rejects injection patterns, and limits input size.
+4. Parent-child retrieval ranks child chunks with BM25 and dense similarity, fuses rankings with
    reciprocal rank fusion, reranks candidates with a cross-encoder, and returns full parents.
-3. The L4 gate validates every action against a tool risk matrix and argument allowlist.
-4. Three evidence-grounded synthesis calls use the required
+5. The agent invokes registered FastMCP tools; each action then passes the L4 risk matrix and
+   argument allowlist.
+6. Three evidence-grounded synthesis calls use the required
    EVIDENCE/ANALYSIS/CONCLUSION/CONFIDENCE format.
-5. Self-consistency selects the representative candidate, then a critic returns PASS or REVISE.
-6. Langfuse records the agent, two tool calls, three synthesis calls, and critic call as separate
+7. Self-consistency selects the representative candidate, then a critic returns PASS or REVISE.
+8. Langfuse records the agent, two tool calls, three synthesis calls, and critic call as separate
    observations, including agent version metadata.
 
 The detailed diagram and component descriptions are in `docs/architecture.md`.
@@ -79,6 +110,8 @@ The detailed diagram and component descriptions are in `docs/architecture.md`.
 |---|---:|---|
 | `OPENAI_API_KEY` | No | Enables model-backed synthesis |
 | `OPENAI_MODEL` | No | Responses API model; defaults to `gpt-4.1-mini` |
+| `OPENAI_INPUT_COST_PER_1M` | No | Input-token price used for run cost estimates |
+| `OPENAI_OUTPUT_COST_PER_1M` | No | Output-token price used for run cost estimates |
 | `LANGFUSE_PUBLIC_KEY` | No | Langfuse project key |
 | `LANGFUSE_SECRET_KEY` | No | Langfuse secret |
 | `LANGFUSE_HOST` | No | Langfuse host |

@@ -1,4 +1,4 @@
-"""Security controls for user input, tool actions, and token consumption."""
+"""L1/L4 security controls for input, actions, and token consumption."""
 
 from __future__ import annotations
 

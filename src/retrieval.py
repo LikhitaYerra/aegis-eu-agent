@@ -1,4 +1,4 @@
-"""Parent-child hybrid retrieval with RRF fusion and cross-encoder reranking."""
+"""Parent-child retrieval with hybrid RRF and cross-encoder reranking."""
 
 from __future__ import annotations
 
@@ -207,6 +207,25 @@ class HybridRetriever:
         ]
 
 
+def _document_from_path(path: Path) -> Document:
+    content = path.read_text(encoding="utf-8")
+    metadata: dict[str, str] = {}
+    if content.startswith("---\n"):
+        closing = content.find("\n---", 4)
+        if closing != -1:
+            for line in content[4:closing].splitlines():
+                key, separator, value = line.partition(":")
+                if separator:
+                    metadata[key.strip()] = value.strip()
+    return Document(
+        id=path.stem,
+        title=metadata.get("title", path.stem.replace("_", " ").title()),
+        text=content,
+        source=metadata.get("source_url", str(path)),
+        jurisdiction=metadata.get("jurisdiction", "EU"),
+    )
+
+
 def load_documents(data_directory: str | Path) -> list[Document]:
     """Load Markdown/text documents; fall back to a small bundled EU corpus."""
     directory = Path(data_directory)
@@ -216,13 +235,7 @@ def load_documents(data_directory: str | Path) -> list[Document]:
         else []
     )
     documents = [
-        Document(
-            id=path.stem,
-            title=path.stem.replace("_", " ").title(),
-            text=path.read_text(encoding="utf-8"),
-            source=str(path),
-            jurisdiction="EU",
-        )
+        _document_from_path(path)
         for path in files
         if path.name.lower() != "readme.md"
     ]

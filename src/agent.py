@@ -1,8 +1,9 @@
-"""Command-line AI governance research agent."""
+"""Production orchestrator for the AI governance research agent."""
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 import time
@@ -12,9 +13,15 @@ from typing import Any, Iterator
 
 from dotenv import load_dotenv
 
-from guardrails import SecurityError, TokenBudget, filter_input, gate_action
-from reasoning import SynthesisResult, synthesize_with_critic
-from retrieval import HybridRetriever, SearchResult, load_documents
+from guardrails import SecurityError, TokenBudget, filter_input
+from mcp_server import mcp, set_retriever
+from reasoning import (
+    CRITIC_SYSTEM_PROMPT,
+    SYSTEM_PROMPT_HASH,
+    SynthesisResult,
+    synthesize_with_critic,
+)
+from retrieval import Document, HybridRetriever, SearchResult, load_documents
 
 
 AGENT_VERSION = "0.1.0"
@@ -59,7 +66,11 @@ class Tracer:
             with self.client.start_as_current_observation(
                 name=name,
                 as_type=kind,
-                metadata={"agent_version": AGENT_VERSION, **metadata},
+                metadata={
+                    "agent_version": AGENT_VERSION,
+                    "system_prompt_hash": SYSTEM_PROMPT_HASH,
+                    **metadata,
+                },
             ) as wrapped:
                 yield Observation(wrapped)
         except (RuntimeError, ValueError):
@@ -83,6 +94,7 @@ class GovernanceAgent:
         self.model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
         self.tracer = Tracer()
         self.retriever = HybridRetriever(load_documents(project_root / "data"))
+        set_retriever(self.retriever)
         self.budget = TokenBudget(limit=int(os.getenv("TOKEN_BUDGET", "12000")))
         self._openai_client: Any = None
         self.input_tokens = 0
@@ -92,6 +104,8 @@ class GovernanceAgent:
             "assess_ai_system_risk": 0,
         }
         self.last_latency_seconds = 0.0
+        self.last_results: list[SearchResult] = []
+        self._generation_index = 0
 
     @property
     def estimated_cost_usd(self) -> float:
@@ -103,8 +117,13 @@ class GovernanceAgent:
         ) / 1_000_000
 
     def _model_call(self, system_prompt: str, user_prompt: str, max_tokens: int) -> str:
+        if system_prompt == CRITIC_SYSTEM_PROMPT:
+            observation_name = "critic.review"
+        else:
+            self._generation_index += 1
+            observation_name = f"synthesis.{self._generation_index}"
         with self.tracer.span(
-            "llm.call",
+            observation_name,
             kind="generation",
             model=self.model if not self.demo else "deterministic-demo",
         ) as observation:
@@ -154,16 +173,47 @@ class GovernanceAgent:
             observation.update(output=output)
             return output
 
+    def _call_mcp_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Invoke a registered MCP tool and validate its JSON envelope."""
+
+        async def dispatch() -> dict[str, Any]:
+            content, _ = await mcp.call_tool(name, arguments)
+            if not content:
+                raise RuntimeError(f"MCP tool '{name}' returned no content.")
+            return json.loads(content[0].text)
+
+        payload = asyncio.run(dispatch())
+        if not payload.get("ok", True):
+            raise SecurityError(str(payload.get("error", f"MCP tool '{name}' failed.")))
+        return payload
+
+    @staticmethod
+    def _deserialize_results(items: list[dict[str, Any]]) -> list[SearchResult]:
+        return [
+            SearchResult(
+                document=Document(
+                    id=str(item["id"]),
+                    title=str(item["title"]),
+                    text=str(item["text"]),
+                    source=str(item["source"]),
+                    jurisdiction=str(item.get("jurisdiction", "EU")),
+                ),
+                score=float(item.get("score", 0.0)),
+                matched_chunk=str(item.get("excerpt", "")),
+            )
+            for item in items
+        ]
+
     def _retrieve(self, question: str) -> list[SearchResult]:
         arguments = {"query": question, "top_k": 5}
-        gate_action("search_regulations", arguments)
         self.tool_counts["search_regulations"] += 1
         with self.tracer.span(
             "tool.search_regulations",
             kind="tool",
             query=question,
         ) as observation:
-            results = self.retriever.search(question, top_k=5)
+            payload = self._call_mcp_tool("search_regulations", arguments)
+            results = self._deserialize_results(payload["results"])
             observation.update(
                 output={
                     "result_count": len(results),
@@ -174,17 +224,14 @@ class GovernanceAgent:
 
     def _assess_risk_evidence(self, question: str) -> list[SearchResult]:
         arguments = {"system_description": question, "jurisdiction": "EU"}
-        gate_action("assess_ai_system_risk", arguments)
         self.tool_counts["assess_ai_system_risk"] += 1
         with self.tracer.span(
             "tool.assess_ai_system_risk",
             kind="tool",
             jurisdiction="EU",
         ) as observation:
-            results = self.retriever.search(
-                f"EU AI Act prohibited high-risk transparency obligations {question}",
-                top_k=3,
-            )
+            payload = self._call_mcp_tool("assess_ai_system_risk", arguments)
+            results = self._deserialize_results(payload["evidence"])
             observation.update(
                 output={
                     "result_count": len(results),
@@ -197,6 +244,7 @@ class GovernanceAgent:
         safe_question = filter_input(question)
         self.budget.used = 0
         self.budget.triggered = False
+        self._generation_index = 0
         started = time.perf_counter()
         with self.tracer.span(
             "agent.run",
@@ -206,6 +254,7 @@ class GovernanceAgent:
         ) as observation:
             retrieved = self._retrieve(safe_question) + self._assess_risk_evidence(safe_question)
             results = list({result.document.id: result for result in retrieved}.values())
+            self.last_results = results
             result = synthesize_with_critic(
                 safe_question,
                 results,
@@ -245,6 +294,10 @@ def main() -> int:
     print(f"\nCRITIC VERDICT: {result.critic_verdict}")
     print(f"MODE: {'demo' if agent.demo else agent.model}")
     print(f"TOKEN BUDGET RESERVED: {agent.budget.used}/{agent.budget.limit}")
+    print(
+        "AI DISCLOSURE: AI-generated preliminary research, not legal advice. "
+        "Validate the result with qualified counsel."
+    )
     return 0
 
 
