@@ -5,6 +5,7 @@ __pycache__/
 .DS_Store
 .coverage
 .evaluation_checkpoint.json
+evaluation_retrieval_results.json
 htmlcov/
 .venv/
 venv/

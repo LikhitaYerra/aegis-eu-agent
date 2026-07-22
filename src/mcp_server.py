@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from guardrails import SecurityError, filter_input, gate_action
+from guardrails import filter_input, gate_action
 from retrieval import HybridRetriever, load_documents
 
 try:
@@ -69,7 +69,7 @@ def search_regulations(query: str, top_k: int = 5) -> str:
             },
             ensure_ascii=False,
         )
-    except (SecurityError, ValueError, TypeError, OSError) as error:
+    except Exception as error:  # MCP boundary must always return a structured error envelope.
         return _error(error)
 
 
@@ -114,7 +114,7 @@ def compare_jurisdictions(topic: str, jurisdictions: list[str]) -> str:
             },
             ensure_ascii=False,
         )
-    except (SecurityError, ValueError, TypeError, OSError) as error:
+    except Exception as error:  # MCP boundary must always return a structured error envelope.
         return _error(error)
 
 
@@ -160,7 +160,7 @@ def assess_ai_system_risk(system_description: str, jurisdiction: str = "EU") -> 
             },
             ensure_ascii=False,
         )
-    except (SecurityError, ValueError, TypeError, OSError) as error:
+    except Exception as error:  # MCP boundary must always return a structured error envelope.
         return _error(error)
 
 

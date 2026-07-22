@@ -334,8 +334,11 @@ def main() -> int:
     parser.add_argument("--retrieval-only", action="store_true")
     parser.add_argument(
         "--output",
-        default="evaluation_results.json",
-        help="Path for machine-readable results.",
+        default=None,
+        help=(
+            "Path for machine-readable results. Defaults to evaluation_results.json "
+            "for full runs and evaluation_retrieval_results.json for --retrieval-only."
+        ),
     )
     args = parser.parse_args()
     try:
@@ -343,7 +346,15 @@ def main() -> int:
     except RuntimeError as error:
         print(error)
         return 2
-    Path(args.output).write_text(
+    output_path = Path(
+        args.output
+        or (
+            "evaluation_retrieval_results.json"
+            if args.retrieval_only
+            else "evaluation_results.json"
+        )
+    )
+    output_path.write_text(
         json.dumps(result, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )

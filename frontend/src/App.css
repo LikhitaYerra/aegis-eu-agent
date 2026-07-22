@@ -271,6 +271,23 @@
 .pipeline-list span svg { color: #6ee7ad; }
 .pipeline-list strong { color: #eef0f7; font-size: 11px; font-weight: 600; }
 
+.ai-disclosure-banner {
+  align-items: center;
+  background: #f6f6fd;
+  border: 1px solid #dedff3;
+  border-radius: 14px;
+  color: var(--indigo);
+  display: flex;
+  gap: 12px;
+  margin: -48px auto 30px;
+  max-width: 984px;
+  padding: 14px 18px;
+}
+
+.ai-disclosure-banner > div { display: flex; flex-direction: column; gap: 3px; }
+.ai-disclosure-banner strong { color: var(--ink); font-size: 12px; }
+.ai-disclosure-banner span { color: var(--muted); font-size: 11px; line-height: 1.5; }
+
 .assessment-section {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -865,6 +882,7 @@
   .hero-proof { gap: 18px; }
   .hero-proof strong { font-size: 16px; }
   .intelligence-card { box-sizing: border-box; }
+  .ai-disclosure-banner { border-radius: 0; margin-top: -38px; }
   .assessment-section { margin-bottom: 75px; padding: 38px 18px; }
   .assessment-heading h2 { font-size: 28px; }
   .example-row { align-items: flex-start; flex-direction: column; }

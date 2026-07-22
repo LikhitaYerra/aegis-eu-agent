@@ -90,6 +90,36 @@ def select_consistent_candidate(candidates: Sequence[str]) -> str:
     return sorted(eligible, key=len)[len(eligible) // 2]
 
 
+def parse_critic_response(raw_response: str) -> str:
+    """Parse strict or Markdown-wrapped critic JSON and fail closed."""
+    candidate = raw_response.strip()
+    if candidate.startswith("```"):
+        candidate = re.sub(r"^```(?:json)?\s*", "", candidate, flags=re.I)
+        candidate = re.sub(r"\s*```$", "", candidate)
+
+    try:
+        payload = json.loads(candidate)
+    except json.JSONDecodeError:
+        start = candidate.find("{")
+        end = candidate.rfind("}")
+        if start == -1 or end <= start:
+            return "REVISE: Critic returned invalid JSON."
+        try:
+            payload = json.loads(candidate[start : end + 1])
+        except json.JSONDecodeError:
+            return "REVISE: Critic returned invalid JSON."
+
+    if not isinstance(payload, dict):
+        return "REVISE: Critic response was not a JSON object."
+    verdict = str(payload.get("verdict", "REVISE")).strip().upper()
+    if verdict not in {"PASS", "REVISE"}:
+        return "REVISE: Critic returned an invalid verdict."
+    suggested_fix = str(payload.get("suggested_fix", "")).strip()
+    if not suggested_fix:
+        suggested_fix = "No changes required." if verdict == "PASS" else "Review critic issues."
+    return f"{verdict}: {suggested_fix}"
+
+
 def synthesize_with_critic(
     question: str,
     results: Sequence[SearchResult],
@@ -119,9 +149,5 @@ def synthesize_with_critic(
         f"Question:\n{question}\n\nEvidence:\n{context}\n\nCandidate answer:\n{selected}"
     )
     critic_raw = model_call(CRITIC_SYSTEM_PROMPT, critic_prompt, 400)
-    try:
-        critic = json.loads(critic_raw)
-        verdict = f"{critic.get('verdict', 'REVISE')}: {critic.get('suggested_fix', '')}".strip()
-    except json.JSONDecodeError:
-        verdict = f"REVISE: Critic returned invalid JSON: {critic_raw[:200]}"
+    verdict = parse_critic_response(critic_raw)
     return SynthesisResult(selected, verdict, tuple(candidates))

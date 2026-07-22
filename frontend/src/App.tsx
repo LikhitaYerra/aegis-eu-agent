@@ -104,7 +104,7 @@ function App() {
             <div className="hero-proof">
               <div><strong>0.975</strong><span>RAGAS faithfulness</span></div>
               <div><strong>k=3</strong><span>Self-consistency</span></div>
-              <div><strong>Official</strong><span>EUR-Lex sources</span></div>
+              <div><strong>Curated</strong><span>EUR-Lex-derived corpus</span></div>
             </div>
           </div>
 
@@ -126,6 +126,17 @@ function App() {
             </div>
           </div>
         </section>
+
+        <aside className="ai-disclosure-banner" aria-label="AI interaction disclosure">
+          <Shield size={20} aria-hidden="true" />
+          <div>
+            <strong>You are interacting with an AI system.</strong>
+            <span>
+              Outputs are preliminary regulatory research, not legal advice. Validate conclusions
+              with qualified counsel before acting.
+            </span>
+          </div>
+        </aside>
 
         <section className="assessment-section" id="assessment">
           <div className="assessment-heading">
@@ -214,7 +225,7 @@ function App() {
             <article>
               <span>Security</span><Shield size={23} />
               <h3>Security &amp; guardrails</h3>
-              <p>Unicode-normalized L1 filtering, an auditable L4 action gate, and a hard budget.</p>
+              <p>L1–L4 controls inspect input, evidence, output, and every tool action.</p>
             </article>
             <article>
               <span>Reasoning</span><BrainCircuit size={23} />

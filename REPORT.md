@@ -28,10 +28,13 @@ secret leakage before release.
 
 ```mermaid
 flowchart LR
-    U[Compliance lead] --> G[L1 input filter]
-    G --> A[Agent orchestrator]
+    U[Compliance lead] --> UI[React interface]
+    UI --> API[FastAPI]
+    API --> G[L1 input filter]
+    G --> B[Token budget]
+    B --> A[Agent orchestrator]
     A --> M[FastMCP dispatch]
-    M --> T[L4-gated tools]
+    M --> T[Three L4-gated tools]
     T --> R[Parent-child hybrid retrieval]
     R --> X[Cross-encoder reranking]
     X --> E[L2 evidence filter]
@@ -39,6 +42,7 @@ flowchart LR
     S --> C[Self-consistency and critic]
     C --> V[L3 output validator]
     V --> O[Cited brief and visible verdict]
+    O --> API
     A -. spans .-> L[Langfuse]
 ```
 
@@ -66,12 +70,18 @@ complete agent using `gpt-4.1-mini`.
 The deterministic ID-based pre-check agreed with the RAGAS ranking result: context recall remained
 1.000 while ID average precision increased from 0.562 to 0.783.
 
+For a controlled comparison, the baseline used full-document bag-of-words cosine retrieval and
+the final condition used the production agent's two-query merge pattern. Both conditions used the
+same evidence-structured synthesis prompt, so the measured change isolates retrieval and final
+ensemble differences rather than a stronger baseline prompt.
+
 Across the 10 final-agent runs, average latency was 25.009 seconds and estimated average model cost
 was USD 0.005782, using standard `gpt-4.1-mini` rates of USD 0.40/M input and USD 1.60/M output
 tokens. Tool distribution was 10 `search_regulations` calls and 10
-`assess_ai_system_risk` calls. `evaluation_results.json` stores the machine-readable result. The
-token-budget regression test also triggers the hard limit and confirms a closed failure without
-increasing recorded usage.
+`assess_ai_system_risk` calls; `compare_jurisdictions` is available on demand but is not part of
+the default assessment flow. `evaluation_results.json` stores the machine-readable result. The
+`test_token_budget_fails_closed_and_records_trigger` regression test also triggers the hard limit
+and confirms a closed failure without increasing recorded usage.
 
 ## 4. Security
 
@@ -99,10 +109,11 @@ Aegis EU is a limited/transparency-risk interactive AI system rather than a proh
 high-risk system: its intended purpose is research support, not an Annex III decision such as
 employment selection or access to an essential service. Article 50 requires people to be informed
 when they directly interact with AI unless that fact is obvious. The CLI and web interface
-therefore identify the product as an AI governance research agent, expose model confidence and a
-critic verdict, and state that qualified counsel must validate conclusions. If it were integrated
-into employment or essential-service decisions, that changed intended purpose could move the
-deployed system into a high-risk context and require a new assessment.
+therefore explicitly state, before submission, “You are interacting with an AI system.” The same
+banner says outputs are preliminary research rather than legal advice; results expose model
+confidence, sources, and the critic verdict. If it were integrated into employment or
+essential-service decisions, that changed intended purpose could move the deployed system into a
+high-risk context and require a new assessment.
 
 ## 6. Limitations and what's next
 
@@ -124,15 +135,23 @@ measured threshold.
 
 | Component | Written by human | AI-assisted | AI-generated |
 |---|:---:|:---:|:---:|
-| Problem statement |  |  | ✓ draft |
-| Architecture |  |  | ✓ draft |
-| Core agent loop (`agent.py`) |  |  | ✓ initial implementation |
-| MCP server (`mcp_server.py`) |  |  | ✓ initial implementation |
-| Guardrails (`guardrails.py`) |  |  | ✓ initial implementation |
-| Retrieval pipeline |  |  | ✓ initial implementation |
-| Web interface and API |  |  | ✓ initial implementation |
-| Report text |  |  | ✓ draft |
+| Problem statement | User and scenario selection | Scope refinement | Initial prose |
+| Architecture | Requirements and acceptance decisions | Iterative design changes | Initial diagram and implementation |
+| Core agent loop (`agent.py`) | Behavioral requirements | Review-directed revisions | Initial implementation |
+| MCP server (`mcp_server.py`) | Tool requirements | Dispatch and error-handling revisions | Initial implementation |
+| Guardrails (`guardrails.py`) | Required attack scenarios | L2/L3 additions and test refinement | Initial implementation |
+| Retrieval pipeline | Required techniques | Deployment fallback refinement | Initial implementation |
+| Web interface and API | UX requirements and feedback | Iterative layout and metric changes | Initial implementation |
+| Report text | Factual corrections and project decisions | Revision and condensation | Initial draft |
 
-The group must review, test, and mark any human revisions before submission. Every generated
-function should be explainable by a group member; this table must not be changed merely to make
-the AI contribution appear smaller.
+The group selected the AI-governance topic, defined the compliance-lead scenario, supplied the
+assignment constraints, configured credentials, rejected unsuitable interface choices, and made
+the deployment and acceptance decisions. Cursor generated most initial code and prose. Subsequent
+changes were also AI-assisted but directed by specific group feedback, including replacing the
+first interface, routing retrieval through MCP, adding L2/L3 controls, exposing confidence and
+RAGAS metrics, and adapting retrieval for the deployment memory limit.
+
+Code ownership is therefore based on review and explanation rather than claiming manual typing.
+For assessment, the group should be able to explain the request path in `src/agent.py`, ranking in
+`src/retrieval.py`, each policy in `src/guardrails.py`, all three MCP contracts, the critic
+selection flow, and how `evaluation_results.json` was produced.

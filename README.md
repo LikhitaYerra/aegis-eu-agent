@@ -43,7 +43,8 @@ npm run dev
 
 Open `http://localhost:5173`. Vite proxies `/api` requests to FastAPI on port 8000. The
 interface provides guided scenarios, structured evidence/analysis/conclusion views, a visible
-critic verdict, run cost and latency, and official-source inspection.
+critic verdict, model confidence, run cost and latency, the saved 10-question RAGAS benchmark,
+and official-source inspection.
 
 For a single-server production-style run, build the frontend and let FastAPI serve it:
 
@@ -67,14 +68,16 @@ Run the deterministic 10-question retrieval comparison:
 python src/evaluate.py --retrieval-only
 ```
 
-After adding `OPENAI_API_KEY`, run genuine RAGAS baseline/final scoring plus 10-run cost, latency,
-and tool-distribution measurement:
+This writes `evaluation_retrieval_results.json` and deliberately leaves the graded full evaluation
+artifact unchanged. After adding `OPENAI_API_KEY`, run genuine RAGAS baseline/final scoring plus
+10-run cost, latency, and tool-distribution measurement:
 
 ```bash
 python src/evaluate.py
 ```
 
-Both commands write machine-readable results to `evaluation_results.json`.
+The full command writes the four RAGAS metrics and operational measurements to
+`evaluation_results.json`.
 
 Start the MCP server over stdio:
 
