@@ -520,12 +520,36 @@
 .critic-pill.pass { background: #eaf8f1; border: 1px solid #c6ead7; color: #14784d; }
 .critic-pill.revise { background: #fff4e7; border: 1px solid #f1d6b5; color: #9b5c14; }
 
+.metric-group-heading {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  margin: 0 0 8px 2px;
+}
+
+.metric-group-heading span {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.metric-group-heading small {
+  color: var(--subtle);
+  font-size: 10px;
+}
+
+.ragas-heading { margin-top: 18px; }
+
 .metric-grid {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(4, 1fr);
   margin-bottom: 12px;
 }
+
+.ragas-metric-grid { margin-bottom: 20px; }
+.ragas-metric-grid .metric-card { background: #fafaff; border-color: #dedff3; }
 
 .metric-card {
   align-items: flex-start;

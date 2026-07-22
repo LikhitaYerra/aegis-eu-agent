@@ -37,9 +37,14 @@ function costLabel(cost: number) {
   return `$${cost.toFixed(4)}`
 }
 
+function percentageLabel(score: number) {
+  return `${(score * 100).toFixed(1)}%`
+}
+
 export function ResultWorkspace({ assessment }: ResultWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>('conclusion')
   const passed = assessment.critic_status === 'PASS'
+  const confidence = assessment.sections.confidence.split(/[—-]/)[0].trim()
 
   return (
     <section className="results-section" id="results" aria-live="polite">
@@ -54,7 +59,17 @@ export function ResultWorkspace({ assessment }: ResultWorkspaceProps) {
         </div>
       </div>
 
+      <div className="metric-group-heading">
+        <span>Current assessment</span>
+        <small>Measurements and verdict for this run</small>
+      </div>
       <div className="metric-grid">
+        <MetricCard
+          icon={ShieldCheck}
+          label="Confidence"
+          value={confidence}
+          detail="model-reported level"
+        />
         <MetricCard
           icon={Clock3}
           label="Run latency"
@@ -68,18 +83,49 @@ export function ResultWorkspace({ assessment }: ResultWorkspaceProps) {
           detail={assessment.mode}
         />
         <MetricCard
-          icon={Gauge}
-          label="Token budget"
-          value={`${Math.round((assessment.reserved_tokens / assessment.token_limit) * 100)}%`}
-          detail={`${assessment.reserved_tokens.toLocaleString()} reserved`}
-        />
-        <MetricCard
           icon={Database}
           label="Evidence set"
           value={`${assessment.sources.length} sources`}
           detail="hybrid ranked"
         />
       </div>
+
+      {assessment.ragas_metrics && (
+        <>
+          <div className="metric-group-heading ragas-heading">
+            <span>RAGAS quality benchmark</span>
+            <small>
+              Final pipeline evaluation across {assessment.ragas_metrics.question_count} test questions
+            </small>
+          </div>
+          <div className="metric-grid ragas-metric-grid">
+            <MetricCard
+              icon={Database}
+              label="Context recall"
+              value={percentageLabel(assessment.ragas_metrics.context_recall)}
+              detail="relevant evidence retrieved"
+            />
+            <MetricCard
+              icon={Gauge}
+              label="Context precision"
+              value={percentageLabel(assessment.ragas_metrics.context_precision)}
+              detail="retrieved evidence precision"
+            />
+            <MetricCard
+              icon={BadgeCheck}
+              label="Faithfulness"
+              value={percentageLabel(assessment.ragas_metrics.faithfulness)}
+              detail="claims grounded in context"
+            />
+            <MetricCard
+              icon={BrainCircuit}
+              label="Answer relevancy"
+              value={percentageLabel(assessment.ragas_metrics.answer_relevancy)}
+              detail="response addresses question"
+            />
+          </div>
+        </>
+      )}
 
       <div className="workspace">
         <nav className="result-tabs" aria-label="Assessment sections">
@@ -107,7 +153,7 @@ export function ResultWorkspace({ assessment }: ResultWorkspaceProps) {
                 <span>Model confidence</span>
                 <div className="confidence-mark">
                   <ShieldCheck size={22} aria-hidden="true" />
-                  {assessment.sections.confidence.split(/[—-]/)[0].trim()}
+                  {confidence}
                 </div>
                 <p>{assessment.sections.confidence}</p>
                 <div className="review-note">

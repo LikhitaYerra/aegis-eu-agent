@@ -30,6 +30,14 @@ export type RunTrace = {
   stages: TraceStage[]
 }
 
+export type RagasMetrics = {
+  question_count: number
+  context_recall: number
+  context_precision: number
+  faithfulness: number
+  answer_relevancy: number
+}
+
 export type Assessment = {
   question: string
   answer: string
@@ -43,6 +51,7 @@ export type Assessment = {
   mode: string
   sources: AssessmentSource[]
   trace: RunTrace
+  ragas_metrics: RagasMetrics | null
 }
 
 type ApiError = {

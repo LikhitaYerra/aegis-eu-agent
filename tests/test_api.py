@@ -78,6 +78,9 @@ def test_assess_returns_structured_contract() -> None:
     assert payload["sections"]["conclusion"] == "Disclose the AI interaction before use."
     assert payload["sources"][0]["jurisdiction"] == "EU"
     assert payload["reserved_tokens"] == 500
+    assert payload["sections"]["confidence"].startswith("HIGH")
+    assert payload["ragas_metrics"]["question_count"] == 10
+    assert payload["ragas_metrics"]["faithfulness"] > 0.97
     assert payload["trace"]["reasoning_candidates"] == 3
     assert [stage["layer"] for stage in payload["trace"]["stages"]] == [
         "Security",

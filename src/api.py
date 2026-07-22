@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -60,6 +61,14 @@ class RunTraceResponse(BaseModel):
     stages: list[TraceStageResponse]
 
 
+class RagasMetricsResponse(BaseModel):
+    question_count: int
+    context_recall: float
+    context_precision: float
+    faithfulness: float
+    answer_relevancy: float
+
+
 class AssessResponse(BaseModel):
     question: str
     answer: str
@@ -73,12 +82,31 @@ class AssessResponse(BaseModel):
     mode: str
     sources: list[SourceResponse]
     trace: RunTraceResponse
+    ragas_metrics: RagasMetricsResponse | None
 
 
 class HealthResponse(BaseModel):
     status: str
     version: str
     mode: str
+
+
+def load_ragas_metrics() -> RagasMetricsResponse | None:
+    """Load the saved final evaluation benchmark for transparent UI display."""
+    results_path = PROJECT_ROOT / "evaluation_results.json"
+    try:
+        payload = json.loads(results_path.read_text(encoding="utf-8"))
+        final = payload["ragas"]["final"]
+        return RagasMetricsResponse(
+            question_count=int(payload["question_count"]),
+            context_recall=float(final["context_recall"]),
+            context_precision=float(final["context_precision"]),
+            faithfulness=float(final["faithfulness"]),
+            answer_relevancy=float(final["answer_relevancy"]),
+        )
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        logger.warning("RAGAS evaluation results are unavailable", exc_info=True)
+        return None
 
 
 def split_answer(answer: str) -> SectionsResponse:
@@ -183,6 +211,7 @@ def serialize_run(
                 ),
             ],
         ),
+        ragas_metrics=load_ragas_metrics(),
     )
 
 
