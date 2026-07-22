@@ -156,9 +156,9 @@ def serialize_run(
                 TraceStageResponse(
                     layer="Security",
                     label="Security gate",
-                    method="L1 input filter + L4 action matrix",
+                    method="L1 input + L2 evidence + L3 output + L4 action",
                     status="passed",
-                    detail="Unicode-normalized input and both read-only tool calls passed policy.",
+                    detail="Input, retrieved evidence, final output, and tool calls passed policy.",
                 ),
                 TraceStageResponse(
                     layer="Retrieval",

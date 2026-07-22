@@ -13,7 +13,13 @@ from typing import Any, Iterator
 
 from dotenv import load_dotenv
 
-from guardrails import SecurityError, TokenBudget, filter_input
+from guardrails import (
+    SecurityError,
+    TokenBudget,
+    filter_input,
+    filter_retrieved_content,
+    validate_output,
+)
 from mcp_server import mcp, set_retriever
 from reasoning import (
     CRITIC_SYSTEM_PROMPT,
@@ -189,20 +195,26 @@ class GovernanceAgent:
 
     @staticmethod
     def _deserialize_results(items: list[dict[str, Any]]) -> list[SearchResult]:
-        return [
-            SearchResult(
-                document=Document(
-                    id=str(item["id"]),
-                    title=str(item["title"]),
-                    text=str(item["text"]),
-                    source=str(item["source"]),
-                    jurisdiction=str(item.get("jurisdiction", "EU")),
-                ),
-                score=float(item.get("score", 0.0)),
-                matched_chunk=str(item.get("excerpt", "")),
+        results: list[SearchResult] = []
+        for item in items:
+            source = str(item["source"])
+            results.append(
+                SearchResult(
+                    document=Document(
+                        id=str(item["id"]),
+                        title=str(item["title"]),
+                        text=filter_retrieved_content(str(item["text"]), source=source),
+                        source=source,
+                        jurisdiction=str(item.get("jurisdiction", "EU")),
+                    ),
+                    score=float(item.get("score", 0.0)),
+                    matched_chunk=filter_retrieved_content(
+                        str(item.get("excerpt", "")),
+                        source=f"{source} excerpt",
+                    ),
+                )
             )
-            for item in items
-        ]
+        return results
 
     def _retrieve(self, question: str) -> list[SearchResult]:
         arguments = {"query": question, "top_k": 5}
@@ -261,6 +273,15 @@ class GovernanceAgent:
                 self._model_call,
                 self.budget,
                 k=3,
+            )
+            result = SynthesisResult(
+                answer=validate_output(
+                    result.answer,
+                    source_count=len(results),
+                    critic_verdict=result.critic_verdict,
+                ),
+                critic_verdict=result.critic_verdict,
+                candidates=result.candidates,
             )
             observation.update(
                 output={

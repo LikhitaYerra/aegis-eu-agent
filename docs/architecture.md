@@ -18,7 +18,8 @@ flowchart TD
     B --> F[Reciprocal rank fusion]
     D --> F
     F --> X[Cross-encoder reranker]
-    X --> P[Full parent context]
+    X --> L2[L2 indirect-injection filter]
+    L2 --> P[Full parent context]
     P --> S1[Synthesis 1]
     P --> S2[Synthesis 2]
     P --> S3[Synthesis 3]
@@ -26,7 +27,8 @@ flowchart TD
     S2 --> SC
     S3 --> SC
     SC --> C[Critic agent]
-    C --> O[Structured answer and visible verdict]
+    C --> L3[L3 output and citation validator]
+    L3 --> O[Structured answer and visible verdict]
     O --> API
     API --> UI
     A -. spans .-> LF[Langfuse]
@@ -52,8 +54,8 @@ flowchart TD
 - `src/retrieval.py` splits source documents into overlapping child chunks. BM25 and dense
   rankings are fused with RRF. A cross-encoder reranks the fused shortlist, after which the full
   parent document is supplied as context.
-- `src/guardrails.py` implements the L1 filter, L4 gate, shared action risk matrix, argument
-  allowlists, and hard `TokenBudget`.
+- `src/guardrails.py` implements the L1 input filter, L2 evidence filter, L3 deterministic output
+  validator, L4 action gate, shared risk matrix, argument allowlists, and hard `TokenBudget`.
 - `src/reasoning.py` contains the few-shot structured prompt, context assembly,
   self-consistency (`k=3`), and independent critic.
 - `src/mcp_server.py` exposes three read-only tools over MCP stdio with complete usage contracts

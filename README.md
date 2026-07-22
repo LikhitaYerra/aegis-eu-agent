@@ -94,12 +94,16 @@ and retrieval failures into safe error responses.
 3. The L1 guardrail normalizes Unicode, rejects injection patterns, and limits input size.
 4. Parent-child retrieval ranks child chunks with BM25 and dense similarity, fuses rankings with
    reciprocal rank fusion, reranks candidates with a cross-encoder, and returns full parents.
-5. The agent invokes registered FastMCP tools; each action then passes the L4 risk matrix and
+5. The L2 evidence filter blocks indirect prompt injection in retrieved documents before context
+   assembly.
+6. The agent invokes registered FastMCP tools; each action passes the L4 risk matrix and
    argument allowlist.
-6. Three evidence-grounded synthesis calls use the required
+7. Three evidence-grounded synthesis calls use the required
    EVIDENCE/ANALYSIS/CONCLUSION/CONFIDENCE format.
-7. Self-consistency selects the representative candidate, then a critic returns PASS or REVISE.
-8. Langfuse records the agent, two tool calls, three synthesis calls, and critic call as separate
+8. Self-consistency selects the representative candidate, then a critic returns PASS or REVISE.
+9. The L3 validator enforces structure, citation bounds, confidence tags, and secret-leak checks
+   before the answer is returned.
+10. Langfuse records the agent, two tool calls, three synthesis calls, and critic call as separate
    observations, including agent version metadata.
 
 The detailed diagram and component descriptions are in `docs/architecture.md`.
