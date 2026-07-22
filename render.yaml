@@ -5,7 +5,7 @@ services:
     plan: free
     region: frankfurt
     branch: main
-    buildCommand: pip install -r requirements-deploy.txt && npm --prefix frontend ci && npm --prefix frontend run build
+    buildCommand: pip install --no-cache-dir -r requirements-deploy.txt && npm --prefix frontend ci && npm --prefix frontend run build
     startCommand: uvicorn api:app --app-dir src --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     autoDeployTrigger: commit
